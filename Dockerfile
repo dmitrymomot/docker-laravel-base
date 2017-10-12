@@ -2,15 +2,32 @@ FROM tonyisworking/laravel-php7-nginx
 
 MAINTAINER Dmitry Momot <mail@dmomot.com>
 
+ENV TERM xterm
+
 # install memcache extension
-RUN apt-get update \
-  && apt-get install -y libmemcached11 libmemcachedutil2 build-essential libmemcached-dev libz-dev \
-  && pecl install memcached \
-  && echo extension=memcached.so >> /usr/local/etc/php/conf.d/memcached.ini \
-  && apt-get remove -y build-essential libmemcached-dev libz-dev \
-  && apt-get autoremove -y \
-  && apt-get clean \
-  && rm -rf /tmp/pear
+RUN
+    apk add --update \
+        autoconf \
+        file \
+        g++ \
+        gcc \
+        libc-dev \
+        make \
+        pkgconf \
+        re2c \
+        zlib-dev \
+        libmemcached-dev && \
+    cd /tmp && \
+    wget https://github.com/php-memcached-dev/php-memcached/archive/php7.zip && \
+    unzip php7.zip && \
+    cd php-memcached-php7 && \
+    phpize7 || return 1 && \
+    ./configure --prefix=/usr --disable-memcached-sasl --with-php-config=php-config7 || return 1 && \
+    make || return 1 && \
+    make INSTALL_ROOT="" install || return 1 && \
+    install -d "/etc/php7/conf.d" || return 1 && \
+    echo "extension=memcached.so" > /etc/php7/conf.d/20_memcached.ini && \
+    cd /tmp && rm -rf php-memcached-php7 && rm php7.zip
 
 # Install mongodb, xdebug
 RUN pecl install mongodb \
